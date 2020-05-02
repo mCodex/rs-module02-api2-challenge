@@ -1,9 +1,9 @@
-// import AppError from '../errors/AppError';
-
-import { getRepository } from 'typeorm';
+import { getRepository, getCustomRepository } from 'typeorm';
+import AppError from '../errors/AppError';
 
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
+import TransactionsRepository from '../repositories/TransactionsRepository';
 
 interface TransactionDTO {
   title: string;
@@ -22,7 +22,13 @@ class CreateTransactionService {
     let categoryId;
 
     const categoryRepository = getRepository(Category);
-    const transactionRepostory = getRepository(Transaction);
+    const transactionRepostory = getCustomRepository(TransactionsRepository);
+
+    const { total } = await transactionRepostory.getBalance();
+
+    if (type === 'outcome' && value > total) {
+      throw new AppError('Invalid Operation');
+    }
 
     const categoryAlreadyExists = await categoryRepository.find({
       where: { title: category },
@@ -46,8 +52,6 @@ class CreateTransactionService {
       type,
       category_id: categoryId,
     });
-
-    console.log(newTransaction);
 
     const transaction = await transactionRepostory.save(newTransaction);
 
